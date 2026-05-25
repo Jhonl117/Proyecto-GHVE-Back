@@ -34,7 +34,7 @@ class Server {
   async dbConnection() {
     try {
       await db.authenticate();
-      await db.sync({ alter: true }); // Sincronizar modelos y actualizar columnas faltantes
+      await db.sync(); // Sincronizar modelos y actualizar columnas faltantes
       console.log("Database online and tables synced");
     } catch (error) {
       console.error("Error connecting to database:", error);
