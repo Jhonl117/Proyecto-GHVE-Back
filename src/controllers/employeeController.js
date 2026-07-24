@@ -27,6 +27,15 @@ const getEmployee = async (req, res = response, next) => {
 
 const postEmployee = async (req, res = response, next) => {
     const { body } = req;
+
+    body.nombre_completo = body.nombre_completo?.toUpperCase();
+    body.contacto_emergencia = body.contacto_emergencia?.toUpperCase();
+    body.parentesco_otro = body.parentesco_otro?.toUpperCase();
+    body.cargo = body.cargo?.toUpperCase();
+    body.empresa = body.empresa?.toUpperCase();
+    body.eps = body.eps?.toUpperCase();
+    body.fondo_pension = body.fondo_pension?.toUpperCase();
+
     try {
         const employee = await Employee.create(body);
         res.json(employee);
@@ -104,75 +113,63 @@ const getExpiringContracts = async (req, res = response, next) => {
     }
 };
 
-const postEmployeesBulk = async (req, res = response) => {
-    const { empleados } = req.body;
-    try {
-        if (!empleados || !Array.isArray(empleados)) {
-            return res.status(400).json({ msg: 'Formato de datos inválido' });
-        }
-
-        // Pre-procesar: convertir campos vacíos a null (no inventar datos)
-        const procesados = empleados.map((emp) => {
-            const cedula = emp.cedula ? emp.cedula.toString().trim() : '';
-            if (!cedula) return null; // Sin cédula = no se carga
-
-            return {
-                cedula,
-                nombre_completo: emp.nombre_completo ? emp.nombre_completo.toString().trim() : null,
-                fecha_ingreso: emp.fecha_ingreso || null,
-                fecha_nacimiento: emp.fecha_nacimiento || null,
-                celular: emp.celular ? emp.celular.toString().trim() : null,
-                correo_electronico: emp.correo_electronico ? emp.correo_electronico.toString().trim() : null,
-                contacto_emergencia: emp.contacto_emergencia || null,
-                parentesco: emp.parentesco || null,
-                telefono_contacto: emp.telefono_contacto ? emp.telefono_contacto.toString().trim() : null,
-                cargo: emp.cargo || null,
-                empresa: emp.empresa || null,
-                eps: emp.eps || null,
-                fondo_pension: emp.fondo_pension || null,
-                estado: true,
-                tipo_contrato: emp.tipo_contrato || 'Obra o Labor',
-                fecha_vencimiento_contrato: emp.fecha_vencimiento_contrato || null,
-                salario_base: emp.salario_base || 0
-            };
-        }).filter(emp => emp !== null);
-
-        if (procesados.length === 0) {
-            return res.status(400).json({ msg: 'No se encontraron registros válidos con cédula.' });
-        }
-
-        const result = await Employee.bulkCreate(procesados, { 
-            ignoreDuplicates: true,
-            validate: false 
-        });
-
-        res.json({
-            msg: `Importación exitosa. Se procesaron ${result.length} de ${empleados.length} empleados.`,
-            count: result.length,
-            total: empleados.length
-        });
-    } catch (error) {
-        console.error('Error en carga masiva:', error.message || 'Error desconocido');
-        
-        let detalles = ['Error desconocido en la carga masiva'];
-        if (error.errors && Array.isArray(error.errors)) {
-            const mensajes = error.errors.map(e => {
-                if (e.errors && e.errors.errors) {
-                    return e.errors.errors.map(ve => ve.message);
-                }
-                return e.message || 'Error de validación';
-            }).flat();
-            detalles = [...new Set(mensajes)];
-        } else if (error.message) {
-            detalles = [error.message];
-        }
-
-        res.status(400).json({
-            msg: `Error en la carga masiva.`,
-            detalles,
-            total: empleados.length
-        });
+const postEmployeesBulk = async (req, res = response, next) => {
+  const { empleados } = req.body;
+ 
+  try {
+    if (!empleados || !Array.isArray(empleados)) {
+      return res.status(400).json({ msg: 'Formato de datos inválido' });
     }
+ 
+    const procesados = empleados.map((emp) => {
+      const cedula = emp.cedula ? String(emp.cedula).trim().split('.')[0] : '';
+      if (!cedula) return null;
+ 
+      return {
+        cedula,
+        nombre_completo            : emp.nombre_completo       ? String(emp.nombre_completo).trim().toUpperCase()     : null,
+        fecha_ingreso              : emp.fecha_ingreso          || null,
+        fecha_nacimiento           : emp.fecha_nacimiento       || null,
+        celular                    : emp.celular                ? String(emp.celular).trim().split('.')[0]             : null,
+        correo_electronico         : emp.correo_electronico     ? String(emp.correo_electronico).trim().toLowerCase()  : null,
+        contacto_emergencia        : emp.contacto_emergencia    ? String(emp.contacto_emergencia).trim().toUpperCase() : null,
+        parentesco                 : emp.parentesco             || null,
+        cargo                      : emp.cargo                  ? String(emp.cargo).trim().toUpperCase()               : null,
+        empresa                    : emp.empresa                ? String(emp.empresa).trim().toUpperCase()             : null,
+        eps                        : emp.eps                    ? String(emp.eps).trim().toUpperCase()                 : null,
+        fondo_pension              : emp.fondo_pension          ? String(emp.fondo_pension).trim().toUpperCase()       : null,
+        estado                     : true,
+        tipo_contrato              : emp.tipo_contrato          || 'Obra o Labor',
+        fecha_vencimiento_contrato : emp.fecha_vencimiento_contrato || null,
+        salario_base               : emp.salario_base           || 0,
+      };
+    }).filter(Boolean);
+ 
+    if (procesados.length === 0) {
+      return res.status(400).json({ msg: 'No se encontraron registros válidos con cédula.' });
+    }
+ 
+    const db = require('../database/connection');
+
+    await db.transaction(async (t) => {
+    for (const emp of procesados) {
+        await Employee.create(emp, {
+        validate   : true,
+        transaction: t,
+        });
+      }
+    });
+
+    
+    res.json({
+      msg   : `Importación exitosa. ${result.length} empleados registrados.`,
+      count : result.length,
+      total : empleados.length,
+    });
+ 
+  } catch (error) {
+    next(error); // el errorHandler global lo recibe
+  }
 };
 
 const deleteEmployeesBulk = async (req, res, next) => {

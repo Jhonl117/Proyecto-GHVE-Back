@@ -4,9 +4,9 @@ const helmet = require("helmet");
 const db = require("../database/connection");
 const employeeRoutes = require("../routes/employeeRoutes");
 const authRoutes = require("../routes/authRoutes");
-const payrollRoutes = require("../routes/payrollRoutes");
 const cargoRoutes = require("../routes/cargoRoutes");
 const empresaRoutes = require("../routes/empresaRoutes");
+const epsRoutes = require("../routes/epsRoutes");
 const configReporteRoutes = require("../routes/configReporteRoutes");
 const { validarJWT } = require("../middlewares/validar-jwt");
 const anniversaryCron = require("../cron/anniversaryCron");
@@ -44,10 +44,32 @@ class Server {
 
   middlewares() {
     // Seguridad de cabeceras HTTP
-    this.app.use(helmet());
+    this.app.use(helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          scriptSrc: [
+            "'self'",
+            "'unsafe-inline'",
+            "https://cdn.jsdelivr.net",
+            "https://cdnjs.cloudflare.com"
+          ],
+          styleSrc: [
+            "'self'",
+            "'unsafe-inline'",
+            "https://cdn.jsdelivr.net",
+            "https://cdnjs.cloudflare.com"
+          ],
+          imgSrc: ["'self'", "data:", "blob:"],
+          connectSrc: ["'self'"],
+        }
+      }
+    }));
 
     // CORS
-    this.app.use(cors());
+    this.app.use(cors({
+      origin: process.env.FRONTEND_URL
+    }));
 
     // Lectura y parseo del body
     this.app.use(express.json({ limit: "50mb" }));
@@ -57,10 +79,16 @@ class Server {
   routes() {
     this.app.use("/api/auth", authRoutes);
     this.app.use("/api/empleado", [validarJWT], employeeRoutes);
-    this.app.use("/api/nomina", [validarJWT], payrollRoutes);
     this.app.use("/api/cargos", [validarJWT], cargoRoutes);
     this.app.use("/api/empresas", [validarJWT], empresaRoutes);
+    this.app.use("/api/eps", [validarJWT], epsRoutes);
     this.app.use("/api/config-reportes", [validarJWT], configReporteRoutes);
+
+    const path = require("path");
+    this.app.use(express.static(path.join(__dirname, "../../../front/dist")));
+    this.app.get("/{*path}", (req, res) => {
+      res.sendFile(path.join(__dirname, "../../../front/dist", "index.html"));
+    });
 
     // Manejador de errores global (Debe ir después de las rutas)
     const errorHandler = require("../middlewares/errorHandler");
