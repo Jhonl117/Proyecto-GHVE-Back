@@ -1,5 +1,5 @@
 const errorHandler = (err, req, res, next) => {
- 
+ console.log('🚨🚨🚨 ENTRÓ AL ERROR HANDLER 🚨🚨🚨'); // ← agrega esto
   // ── 1. Errores de carga masiva (bulkCreate con individualHooks: true) ────────
   // Sequelize lanza un AggregateError que contiene un error por cada fila fallida
   if (
@@ -73,10 +73,12 @@ const errorHandler = (err, req, res, next) => {
   // ── 5. Error genérico ─────────────────────────────────────────────────────────
   console.error('--- ERROR INTERNO ---');
   console.error(err.message || err);
+  console.error(err);
  
   res.status(500).json({
     msg  : 'Error interno del servidor',
-    error: process.env.NODE_ENV === 'development' ? err.message : 'Consulte al administrador',
+    error: err.message,
+    name : err.name, 
   });
 };
 

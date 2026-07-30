@@ -70,9 +70,9 @@ const forgotPassword = async (req, res = response) => {
         const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/reset-password/${resetToken}`;
 
         const mailOptions = {
-            from: `"Gestión Humana" <${process.env.EMAIL_USER}>`,
+            from: `"Gestión Humana VE" <${process.env.EMAIL_USER}>`,
             to: user.email,
-            subject: '🔐 Recuperación de Contraseña - Gestión Humana',
+            subject: '🔐 Recuperación de Contraseña - Gestión Humana VE',
             html: `
                 <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 500px; margin: 0 auto;">
                     <div style="background: linear-gradient(135deg, #4f46e5, #7c3aed); padding: 24px; border-radius: 12px 12px 0 0; text-align: center;">
@@ -86,7 +86,7 @@ const forgotPassword = async (req, res = response) => {
                         </div>
                         <p style="color: #9ca3af; font-size: 12px;">Este enlace expirará en 1 hora. Si no solicitaste esto, ignora este correo.</p>
                         <hr style="border: 0; border-top: 1px solid #e5e7eb; margin: 20px 0;">
-                        <p style="font-size: 11px; color: #9ca3af;">Sistema de Gestión — Gestión Humana</p>
+                        <p style="font-size: 11px; color: #9ca3af;">Sistema de Gestión — Gestión Humana VE</p>
                     </div>
                 </div>
             `,

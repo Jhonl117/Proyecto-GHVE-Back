@@ -114,6 +114,7 @@ const getExpiringContracts = async (req, res = response, next) => {
 };
 
 const postEmployeesBulk = async (req, res = response, next) => {
+  console.log('🔵 LLEGÓ AL BULK ENDPOINT', req.body.empleados?.length, 'registros'); 
   const { empleados } = req.body;
  
   try {
@@ -134,6 +135,7 @@ const postEmployeesBulk = async (req, res = response, next) => {
         correo_electronico         : emp.correo_electronico     ? String(emp.correo_electronico).trim().toLowerCase()  : null,
         contacto_emergencia        : emp.contacto_emergencia    ? String(emp.contacto_emergencia).trim().toUpperCase() : null,
         parentesco                 : emp.parentesco             || null,
+        parentesco_otro            : emp.parentesco_otro   || null,  
         cargo                      : emp.cargo                  ? String(emp.cargo).trim().toUpperCase()               : null,
         empresa                    : emp.empresa                ? String(emp.empresa).trim().toUpperCase()             : null,
         eps                        : emp.eps                    ? String(emp.eps).trim().toUpperCase()                 : null,
@@ -151,6 +153,8 @@ const postEmployeesBulk = async (req, res = response, next) => {
  
     const db = require('../database/connection');
 
+    console.log('🔵 Iniciando transacción con', procesados.length, 'registros'); // ← agregar
+
     await db.transaction(async (t) => {
     for (const emp of procesados) {
         await Employee.create(emp, {
@@ -160,14 +164,16 @@ const postEmployeesBulk = async (req, res = response, next) => {
       }
     });
 
-    
+    console.log('✅ TRANSACCIÓN COMPLETADA, enviando respuesta...'); // ← agrega esto
+
     res.json({
-      msg   : `Importación exitosa. ${result.length} empleados registrados.`,
-      count : result.length,
-      total : empleados.length,
+        msg   : `Importación exitosa. ${procesados.length} empleados registrados.`,
+        count : procesados.length,
+        total : empleados.length,
     });
  
   } catch (error) {
+    console.log('❌ ERROR ATRAPADO:', error.name, '-', error.message); // ← agregar
     next(error); // el errorHandler global lo recibe
   }
 };
